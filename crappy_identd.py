@@ -16,6 +16,7 @@ crappy_identd.py -- An ident server designed to artifically inflate my
 import os
 import re
 import pwd
+import time
 import socket
 import syslog
 
@@ -142,9 +143,29 @@ def drop_privileges(username):
     os.setuid(uid)
 
 
-def output_message(message):
-    syslog.syslog(message)
-    print message
+def output_message(message, timestamp=True, use_syslog=True):
+    """ output_message() -- Deal with outputting messages; logging, stdout,
+                         -- all that stuff.
+
+    Args:
+        message (str)     - Message to output.
+
+        timestamp (bool)  - Whether or not to add a timestamp to the message.
+                            Default: True.
+
+        use_syslog (bool) - Whether or not to use syslog facilities.
+                            Default: True.
+
+    Returns:
+        Nothing.
+    """
+    if use_syslog:
+        syslog.syslog(message)
+
+    if timestamp:
+        print time.strftime("%b %d %H:%M:%S"), message
+    else:
+        print message
 
 
 def main():
