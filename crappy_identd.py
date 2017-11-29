@@ -16,6 +16,7 @@ crappy_identd.py -- An ident server designed to artifically inflate my
 import os
 import re
 import pwd
+import sys
 import time
 import socket
 import syslog
@@ -199,5 +200,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        output_message("caught SIGINT. Exiting.")
+        sys.exit(os.EX_USAGE)
 
