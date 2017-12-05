@@ -189,7 +189,12 @@ def main():
 
     while True:
         client, addr = sock.accept()
-        data = client.recv(1024)
+        try:
+            data = client.recv(1024)
+        except socket.error as message:
+            output_message("receive error from %s: %s" % (addr[0], message))
+            continue
+
         output_message("request from %s: %s" % (addr[0], data.rstrip()))
 
         response = identd_response(data.rstrip())
