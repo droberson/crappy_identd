@@ -3,14 +3,13 @@
 """
 crappy_identd.py -- An ident server designed to artifically inflate my
                  -- IRC client's eliteness.
-  by Daniel Roberson @dmfroberson                        November/2017
+  by Daniel Roberson @dmfroberson             November - December/2017
 """
 
 # TODO:
 # - daemonize
 # - ability to lie by default (dont actually check port, just return a value)
 # - real user:fake user mappings config file (in case of unreadable home dir)
-# - error checking for bind, listen, socket, ...
 
 import os
 import re
@@ -181,9 +180,23 @@ def main():
     Returns:
         Nothing.
     """
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.bind(("0.0.0.0", 113))
-    sock.listen(5)
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    except socket.error as message:
+        output_message("unable to create socket: %s" % message)
+        sys.exit(os.EX_USAGE)
+
+    try:
+        sock.bind(("0.0.0.0", 113))
+    except socket.error as message:
+        output_message("unable to bind socket: %s" % message)
+        sys.exit(os.EX_USAGE)
+
+    try:
+        sock.listen(5)
+    except socket.error as message:
+        output_message("unable to listen: %s" % message)
+        sys.exit(os.EX_USAGE)
 
     drop_privileges("nobody")
 
