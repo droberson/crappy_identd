@@ -10,7 +10,6 @@ crappy_identd.py -- An ident server designed to artifically inflate my
 # - daemonize
 # - ability to lie by default (dont actually check port, just return a value)
 # - real user:fake user mappings config file (in case of unreadable home dir)
-# - detect enumeration attempts: X attempts in Y seconds from Z address...
 # - error checking for bind, listen, socket, ...
 
 import os
@@ -58,6 +57,10 @@ def get_uid_from_port(port):
                 continue
 
             if port == lport:
+                # State 0A is listening. Do not disclose this.
+                if line.split()[3] == "0A":
+                    return None
+
                 return int(line.split()[7])
 
     return None
