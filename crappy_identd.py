@@ -37,17 +37,22 @@ def is_valid_port(port):
     return False
 
 
-def get_uid_from_port(port):
+def get_uid_from_port(source_ip, port):
     """ get_uid_from_port() -- Maps UID to port number via /proc/net/tcp.
 
     Args:
-        port (int) - Local port number
+        source_ip(str) - Source IP of the request
+        port (int)     - Local port number
 
     Returns:
         UID as an int of the owner of the specified port.
         None if no match was found.
     """
-    with open("/proc/net/tcp") as proc_net_tcp:
+    if ':' in source_ip:
+        target = "/proc/net/tcp6"
+    else:
+        target = "/proc/net/tcp"
+    with open(target) as proc_net_tcp:
         for line in proc_net_tcp:
             try:
                 lport = line.split()[1]
@@ -111,7 +116,7 @@ def identd_response(source_ip, data, mapping):
         return "%s : USERID : UNIX : %s" % (data, username)
 
     # Figure out which user is using lport
-    uid = get_uid_from_port(lport)
+    uid = get_uid_from_port(source_ip, lport)
 
     if uid is None:
         response = "%s : ERROR : NO-USER" % data
@@ -222,13 +227,13 @@ def main(args):
         mapping = None
 
     try:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
     except socket.error as message:
         output_message("unable to create socket: %s" % message)
         sys.exit(os.EX_USAGE)
 
     try:
-        sock.bind(("0.0.0.0", 113))
+        sock.bind(("::", 113))
     except socket.error as message:
         output_message("unable to bind socket: %s" % message)
         sys.exit(os.EX_USAGE)
@@ -253,6 +258,10 @@ def main(args):
             continue
 
         source_ip = addr[0]
+        if source_ip.startswith('::ffff:'):
+            # IPv4 addresses look like ::ffff:127.0.0.1
+            source_ip = source_ip.replace('::ffff:', '')
+
         output_message("request from %s: %s" % (source_ip, data.rstrip()))
 
         response = identd_response(source_ip, data.rstrip(), mapping)
