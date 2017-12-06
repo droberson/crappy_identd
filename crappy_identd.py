@@ -266,11 +266,28 @@ def main(args):
 if __name__ == "__main__":
     try:
         parser = argparse.ArgumentParser("crappy identd")
-        parser.add_argument("-u", "--user", help="run as the specified user", default="nobody")
-        parser.add_argument("-m", "--mapping", help="path to mapping.yml with ip/host/user overrides", default=None)
-        parser.add_argument("-l", "--lie", help="don't check for port/user association", action="store_true", default=False)
-        parser.add_argument("-i", "--idfile", help="name of the id file in users homedir", default=".fakeid")
-        parser.add_argument("-f", "--fake", help="return fake username from mapping if no idfile can be found", action="store_true", default="False")
+        parser.add_argument("-u",
+                            "--user",
+                            help="run as the specified user",
+                            default="nobody")
+        parser.add_argument("-m",
+                            "--mapping",
+                            help="path to mapping.yml containing overrides",
+                            default=None)
+        parser.add_argument("-l",
+                            "--lie",
+                            help="don't check for port/user association",
+                            action="store_true",
+                            default=False)
+        parser.add_argument("-i",
+                            "--idfile",
+                            help="name of the id file in users homedir",
+                            default=".fakeid")
+        parser.add_argument("-f",
+                            "--fake",
+                            help="return fake username from mapping if no idfile can be found",
+                            action="store_true",
+                            default="False")
         args = parser.parse_args()
         main(args)
     except KeyboardInterrupt:
