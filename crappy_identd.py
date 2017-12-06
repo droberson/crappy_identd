@@ -166,7 +166,7 @@ def output_message(message, timestamp=True, use_syslog=True):
         syslog.syslog(message)
 
     if timestamp:
-        print(time.strftime("%b %d %H:%M:%S"), message)
+        print("%s %s" % (time.strftime("%b %d %H:%M:%S"), message))
     else:
         print(message)
 
