@@ -92,10 +92,11 @@ def identd_response(source_ip, data, mapping):
         response = "%s : ERROR : INVALID-PORT" % data
         return response
 
+    username = ""
+
     if args.lie:
         username = uuid.uuid4().get_hex()[0:7]
     elif mapping:
-        username = ""
         if source_ip in mapping['ip']:
             username = mapping['ip'][source_ip]
         else:
