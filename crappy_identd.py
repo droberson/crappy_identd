@@ -8,8 +8,6 @@ crappy_identd.py -- An ident server designed to artifically inflate my
 
 # TODO:
 # - daemonize
-# - ability to lie by default (dont actually check port, just return a value)
-# - real user:fake user mappings config file (in case of unreadable home dir)
 
 import argparse
 import os
@@ -68,11 +66,13 @@ def get_uid_from_port(port):
     return None
 
 
-def identd_response(data):
+def identd_response(source_ip, data, mapping):
     """ identd_response() -- Parse ident request. Return appropriate response.
 
         Args:
-            data (str) - Client's request.
+            source_ip (str) - Client IP.
+            data (str)      - Client's request.
+            mapping (dict)  - User-defined overrides per IP/DNS/User.
 
         Returns:
             String containing the response.
@@ -92,6 +92,24 @@ def identd_response(data):
         response = "%s : ERROR : INVALID-PORT" % data
         return response
 
+    if args.lie:
+        username = uuid.uuid4().get_hex()[0:7]
+    elif mapping:
+        username = ""
+        if source_ip in mapping['ip']:
+            username = mapping['ip'][source_ip]
+        else:
+            try:
+                # Check whether the IP has a reverse DNS entry
+                source_host = socket.gethostbyaddr(source_ip)[0]
+                if source_host in mapping['host']:
+                    username = mapping['host'][source_host]
+            except socket.herror as e:
+                pass
+    # If we got a username like that we're done here
+    if username:
+        return "%s : USERID : UNIX : %s" % (data, username)
+
     # Figure out which user is using lport
     uid = get_uid_from_port(lport)
 
@@ -106,7 +124,7 @@ def identd_response(data):
         return response
 
     # See if user has a .fakeid
-    fakeid = os.path.join(pwd.getpwuid(uid).pw_dir, ".fakeid")
+    fakeid = os.path.join(pwd.getpwuid(uid).pw_dir, args.idfile)
     if os.path.isfile(fakeid) and not os.path.islink(fakeid):
         try:
             with open(fakeid) as fake_id_file:
@@ -121,8 +139,11 @@ def identd_response(data):
                         break
         except IOError as err:
             pass
+    elif args.fake:
+        if username in mapping['user']:
+            username = mapping['user'][username]
 
-    # No fakeid, so return the actual username.
+    # Return the actual username if no fakeid was found.
     response = "%s : USERID : UNIX : %s" % (data, username)
     return response
 
@@ -183,6 +204,23 @@ def main(args):
     Returns:
         Nothing.
     """
+    if args.mapping:
+        with open(args.mapping, "r") as file:
+            try:
+                mapping = yaml.safe_load(file)
+            except yaml.YAMLError as e:
+                output_message("error while loading yml mapping: %s" % e)
+                sys.exit(os.EX_DATAERR)
+        # Initialize mapping with empty defaults if missing in YAML
+        if 'ip' not in mapping:
+            mapping['ip'] = {}
+        if 'host' not in mapping:
+            mapping['host'] = {}
+        if 'user' not in mapping:
+            mapping['user'] = {}
+    else:
+        mapping = None
+
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     except socket.error as message:
@@ -201,7 +239,7 @@ def main(args):
         output_message("unable to listen: %s" % message)
         sys.exit(os.EX_USAGE)
 
-    drop_privileges("nobody")
+    drop_privileges(args.user)
 
     syslog.openlog(logoption=syslog.LOG_PID, facility=syslog.LOG_AUTH)
     output_message("server started.")
@@ -214,10 +252,11 @@ def main(args):
             output_message("receive error from %s: %s" % (addr[0], message))
             continue
 
-        output_message("request from %s: %s" % (addr[0], data.rstrip()))
+        source_ip = addr[0]
+        output_message("request from %s: %s" % (source_ip, data.rstrip()))
 
-        response = identd_response(data.rstrip())
-        output_message("reply to %s: %s" % (addr[0], response))
+        response = identd_response(source_ip, data.rstrip(), mapping)
+        output_message("reply to %s: %s" % (source_ip, response))
 
         client.send("{}\r\n".format(response).encode('ascii'))
         client.close()
