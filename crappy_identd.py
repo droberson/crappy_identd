@@ -11,6 +11,7 @@ crappy_identd.py -- An ident server designed to artifically inflate my
 # - ability to lie by default (dont actually check port, just return a value)
 # - real user:fake user mappings config file (in case of unreadable home dir)
 
+import argparse
 import os
 import re
 import pwd
@@ -18,6 +19,8 @@ import sys
 import time
 import socket
 import syslog
+import uuid
+import yaml
 
 
 def is_valid_port(port):
@@ -171,11 +174,11 @@ def output_message(message, timestamp=True, use_syslog=True):
         print(message)
 
 
-def main():
+def main(args):
     """ main() -- Entry point of the program.
 
     Args:
-        None.
+        args    - Arguments as supplied on commandline via argparse.
 
     Returns:
         Nothing.
@@ -222,7 +225,14 @@ def main():
 
 if __name__ == "__main__":
     try:
-        main()
+        parser = argparse.ArgumentParser("crappy identd")
+        parser.add_argument("-u", "--user", help="run as the specified user", default="nobody")
+        parser.add_argument("-m", "--mapping", help="path to mapping.yml with ip/host/user overrides", default=None)
+        parser.add_argument("-l", "--lie", help="don't check for port/user association", action="store_true", default=False)
+        parser.add_argument("-i", "--idfile", help="name of the id file in users homedir", default=".fakeid")
+        parser.add_argument("-f", "--fake", help="return fake username from mapping if no idfile can be found", action="store_true", default="False")
+        args = parser.parse_args()
+        main(args)
     except KeyboardInterrupt:
         output_message("caught SIGINT. Exiting.")
         sys.exit(os.EX_USAGE)
