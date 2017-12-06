@@ -166,9 +166,9 @@ def output_message(message, timestamp=True, use_syslog=True):
         syslog.syslog(message)
 
     if timestamp:
-        print time.strftime("%b %d %H:%M:%S"), message
+        print(time.strftime("%b %d %H:%M:%S"), message)
     else:
-        print message
+        print(message)
 
 
 def main():
@@ -206,7 +206,7 @@ def main():
     while True:
         client, addr = sock.accept()
         try:
-            data = client.recv(1024)
+            data = client.recv(1024).decode('ascii')
         except socket.error as message:
             output_message("receive error from %s: %s" % (addr[0], message))
             continue
@@ -216,7 +216,7 @@ def main():
         response = identd_response(data.rstrip())
         output_message("reply to %s: %s" % (addr[0], response))
 
-        client.send("%s\r\n" % response)
+        client.send("{}\r\n".format(response).encode('ascii'))
         client.close()
 
 
