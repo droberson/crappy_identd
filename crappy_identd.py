@@ -110,7 +110,7 @@ def identd_response(source_ip, data, mapping):
                 source_host = socket.gethostbyaddr(source_ip)[0]
                 if source_host in mapping['host']:
                     username = mapping['host'][source_host]
-            except socket.herror as e:
+            except socket.error as e:
                 pass
     # If we got a username like that we're done here
     if username:
