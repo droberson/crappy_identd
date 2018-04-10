@@ -254,7 +254,8 @@ def main(args):
         client, addr = sock.accept()
         try:
             data = client.recv(1024).decode('ascii')
-        except socket.error as message:
+        #except socket.error as message:
+        except:
             output_message("receive error from %s: %s" % (addr[0], message))
             continue
 
